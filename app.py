@@ -1,7 +1,7 @@
 import os
 import psycopg2
 from psycopg2 import pool
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify
 import pandas as pd
 
 app = Flask(__name__)
@@ -74,7 +74,7 @@ def delete_cadastro(id):
             conn.commit()
     finally:
         release_db_connection(conn)
-    return redirect(url_for('visualizar'))
+    return jsonify({"success": True, "message": "Cadastro excluído com sucesso."})
 
 # Excluir todos os cadastros
 @app.route('/delete_all', methods=['POST'])
@@ -86,7 +86,7 @@ def delete_all_cadastros():
             conn.commit()
     finally:
         release_db_connection(conn)
-    return redirect(url_for('visualizar'))
+    return jsonify({"success": True, "message": "Todos os cadastros foram excluídos."})
 
 # Download da lista em Excel
 @app.route('/download_excel')
