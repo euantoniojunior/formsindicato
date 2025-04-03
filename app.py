@@ -1,7 +1,8 @@
 import os
 import psycopg2
+import pandas as pd
 from psycopg2 import pool
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file
 
 app = Flask(__name__)
 
@@ -53,54 +54,64 @@ def salvar_dados_db(dados):
     finally:
         release_db_connection(conn)
 
-# Obter todos os cadastros
-def obter_cadastros():
+# Obter cadastros com paginação
+def obter_cadastros(pagina, registros_por_pagina=14):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, turno, quantidade_alunos FROM cadastros")
-            return cur.fetchall()
+            cur.execute("SELECT COUNT(*) FROM cadastros")
+            total_registros = cur.fetchone()[0]
+            
+            offset = (pagina - 1) * registros_por_pagina
+            cur.execute("SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, turno, quantidade_alunos FROM cadastros ORDER BY id LIMIT %s OFFSET %s", (registros_por_pagina, offset))
+            return cur.fetchall(), total_registros
     finally:
         release_db_connection(conn)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
     criar_tabela()
-    
-    if request.method == 'POST':
-        nome = request.form['nome']
-        nome_empresa = request.form['nome_empresa']
-        telefone = request.form['telefone']
-        cidade = request.form['cidade']
-        segmento = request.form['segmento']
-        curso = request.form['curso']
-        turno = request.form['turno']
-        quantidade_alunos = request.form['quantidade_alunos']
-
-        # Salvar os dados no banco de dados
-        dados = {
-            "Nome": nome,
-            "Nome da Empresa": nome_empresa,
-            "Telefone": telefone,
-            "Cidade": cidade,
-            "Segmento": segmento,
-            "Curso": curso,
-            "Turno": turno,
-            "Quantidade de Alunos": quantidade_alunos
-        }
-        salvar_dados_db(dados)
-        return redirect(url_for('success'))
-
     return render_template('form.html')
 
 @app.route('/visualizar')
 def visualizar():
-    cadastros = obter_cadastros()
-    return render_template('visualizar.html', cadastros=cadastros)
+    pagina = int(request.args.get('pagina', 1))
+    cadastros, total_registros = obter_cadastros(pagina)
+    total_paginas = (total_registros // 14) + (1 if total_registros % 14 else 0)
+    return render_template('visualizar.html', cadastros=cadastros, pagina=pagina, total_paginas=total_paginas)
 
-@app.route('/success')
-def success():
-    return render_template('success.html')
+@app.route('/baixar_excel')
+def baixar_excel():
+    conn = get_db_connection()
+    try:
+        df = pd.read_sql("SELECT * FROM cadastros", conn)
+        caminho_arquivo = "cadastros.xlsx"
+        df.to_excel(caminho_arquivo, index=False)
+        return send_file(caminho_arquivo, as_attachment=True)
+    finally:
+        release_db_connection(conn)
+
+@app.route('/excluir_todos', methods=['POST'])
+def excluir_todos():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM cadastros")
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+    return redirect(url_for('visualizar'))
+
+@app.route('/excluir/<int:id>', methods=['POST'])
+def excluir(id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM cadastros WHERE id = %s", (id,))
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+    return redirect(url_for('visualizar'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
