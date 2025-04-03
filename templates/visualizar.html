@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizar Cadastros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Lista de Cadastros</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Nome da Empresa</th>
+                <th>Telefone</th>
+                <th>Cidade</th>
+                <th>Segmento</th>
+                <th>Curso</th>
+                <th>Alunos</th>
+                <th>Turno</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cadastro in cadastros %}
+            <tr>
+                <td>{{ cadastro[0] }}</td>
+                <td>{{ cadastro[1] }}</td>
+                <td>{{ cadastro[2] }}</td>
+                <td>{{ cadastro[3] }}</td>
+                <td>{{ cadastro[4] }}</td>
+                <td>{{ cadastro[5] }}</td>
+                <td>{{ cadastro[6] }}</td>
+                <td>{{ cadastro[7] }}</td>
+                <td>{{ cadastro[8] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
