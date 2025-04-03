@@ -1,9 +1,8 @@
 import os
 import psycopg2
-import pandas as pd
 from psycopg2 import pool
 from flask import Flask, render_template, request, redirect, url_for, send_file
-from io import BytesIO
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -65,41 +64,23 @@ def obter_cadastros():
     finally:
         release_db_connection(conn)
 
-# Excluir um registro específico
-def excluir_cadastro(id):
+# Excluir um registro
+def excluir_registro(registro_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM cadastros WHERE id = %s", (id,))
+            cur.execute("DELETE FROM cadastros WHERE id = %s", (registro_id,))
             conn.commit()
     finally:
         release_db_connection(conn)
 
 # Excluir todos os registros
-def excluir_todos_cadastros():
+def excluir_todos_registros():
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM cadastros")
             conn.commit()
-    finally:
-        release_db_connection(conn)
-
-# Gerar e baixar arquivo Excel
-def gerar_excel():
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM cadastros")
-            dados = cur.fetchall()
-            colunas = [desc[0] for desc in cur.description]
-            df = pd.DataFrame(dados, columns=colunas)
-
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Cadastros')
-            output.seek(0)
-            return output
     finally:
         release_db_connection(conn)
 
@@ -138,20 +119,23 @@ def visualizar():
     cadastros = obter_cadastros()
     return render_template('visualizar.html', cadastros=cadastros)
 
-@app.route('/excluir/<int:id>', methods=['POST'])
-def excluir(id):
-    excluir_cadastro(id)
+@app.route('/excluir/<int:registro_id>', methods=['POST'])
+def excluir(registro_id):
+    excluir_registro(registro_id)
     return redirect(url_for('visualizar'))
 
 @app.route('/excluir_todos', methods=['POST'])
 def excluir_todos():
-    excluir_todos_cadastros()
+    excluir_todos_registros()
     return redirect(url_for('visualizar'))
 
 @app.route('/download_excel')
 def download_excel():
-    output = gerar_excel()
-    return send_file(output, download_name='cadastros.xlsx', as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    cadastros = obter_cadastros()
+    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Turno", "Quantidade de Alunos"])
+    file_path = "cadastros.xlsx"
+    df.to_excel(file_path, index=False)
+    return send_file(file_path, as_attachment=True)
 
 @app.route('/success')
 def success():
