@@ -16,7 +16,7 @@
             color: #002f6c;
         }
         .button-container {
-            margin-bottom: 15px;
+            margin-top: 15px;
         }
         .btn {
             padding: 10px 15px;
@@ -63,10 +63,6 @@
 </head>
 <body>
     <h2>Lista de Cadastros</h2>
-    <div class="button-container">
-        <button class="btn btn-download" onclick="downloadExcel()">Download Excel</button>
-        <button class="btn btn-delete-all" onclick="deleteAll()">Excluir Todos</button>
-    </div>
     <table>
         <thead>
             <tr>
@@ -83,7 +79,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for cadastro in cadastros %}
+            {% for cadastro in cadastros[:14] %}
             <tr>
                 <td>{{ cadastro[0] }}</td>
                 <td>{{ cadastro[1] }}</td>
@@ -99,6 +95,10 @@
             {% endfor %}
         </tbody>
     </table>
+    <div class="button-container">
+        <button class="btn btn-download" onclick="downloadExcel()">Download Excel</button>
+        <button class="btn btn-delete-all" onclick="deleteAll()">Excluir Todos</button>
+    </div>
     
     <script>
         function downloadExcel() {
