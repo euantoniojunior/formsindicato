@@ -10,10 +10,33 @@
             margin: 20px;
             padding: 0;
             background-color: #f8f9fa;
+            text-align: center;
         }
         h2 {
-            text-align: center;
             color: #002f6c;
+        }
+        .button-container {
+            margin-bottom: 15px;
+        }
+        .btn {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            color: white;
+        }
+        .btn-download {
+            background-color: #ff6600;
+        }
+        .btn-delete-all {
+            background-color: #d9534f;
+        }
+        .btn-delete {
+            background-color: #d9534f;
+            padding: 5px 10px;
+            font-size: 12px;
         }
         table {
             width: 100%;
@@ -40,6 +63,10 @@
 </head>
 <body>
     <h2>Lista de Cadastros</h2>
+    <div class="button-container">
+        <button class="btn btn-download" onclick="downloadExcel()">Download Excel</button>
+        <button class="btn btn-delete-all" onclick="deleteAll()">Excluir Todos</button>
+    </div>
     <table>
         <thead>
             <tr>
@@ -52,6 +79,7 @@
                 <th>Curso</th>
                 <th>Alunos</th>
                 <th>Turno</th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -66,9 +94,26 @@
                 <td>{{ cadastro[6] }}</td>
                 <td>{{ cadastro[7] }}</td>
                 <td>{{ cadastro[8] }}</td>
+                <td><button class="btn btn-delete" onclick="deleteEntry({{ cadastro[0] }})">Excluir</button></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    
+    <script>
+        function downloadExcel() {
+            window.location.href = '/download_excel';
+        }
+        function deleteAll() {
+            if (confirm("Tem certeza que deseja excluir todos os cadastros?")) {
+                window.location.href = '/delete_all';
+            }
+        }
+        function deleteEntry(id) {
+            if (confirm("Tem certeza que deseja excluir este cadastro?")) {
+                window.location.href = `/delete/${id}`;
+            }
+        }
+    </script>
 </body>
 </html>
