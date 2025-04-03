@@ -80,7 +80,7 @@
         </thead>
         <tbody>
             {% for cadastro in cadastros[:14] %}
-            <tr>
+            <tr id="row-{{ cadastro[0] }}">
                 <td>{{ cadastro[0] }}</td>
                 <td>{{ cadastro[1] }}</td>
                 <td>{{ cadastro[2] }}</td>
@@ -109,13 +109,28 @@
 
         function deleteAll() {
             if (confirm("Tem certeza que deseja excluir todos os cadastros?")) {
-                window.location.href = '/delete_all';
+                fetch('/delete_all', { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert("Erro ao excluir todos os cadastros.");
+                        }
+                    });
             }
         }
 
         function deleteEntry(id) {
-            // Sem confirmação para 1 registro
-            window.location.href = `/delete/${id}`;
+            if (confirm("Tem certeza que deseja excluir este cadastro?")) {
+                fetch(`/delete/${id}`, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            document.getElementById(`row-${id}`).remove();
+                        } else {
+                            alert("Erro ao excluir o cadastro.");
+                        }
+                    });
+            }
         }
     </script>
 </body>
