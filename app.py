@@ -64,18 +64,21 @@ def obter_cadastros():
     finally:
         release_db_connection(conn)
 
-# Excluir um registro
-def excluir_registro(registro_id):
+# Excluir um único cadastro
+@app.route('/delete/<int:id>', methods=['POST'])
+def delete_cadastro(id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM cadastros WHERE id = %s", (registro_id,))
+            cur.execute("DELETE FROM cadastros WHERE id = %s", (id,))
             conn.commit()
     finally:
         release_db_connection(conn)
+    return redirect(url_for('visualizar'))
 
-# Excluir todos os registros
-def excluir_todos_registros():
+# Excluir todos os cadastros
+@app.route('/delete_all', methods=['POST'])
+def delete_all_cadastros():
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -83,6 +86,16 @@ def excluir_todos_registros():
             conn.commit()
     finally:
         release_db_connection(conn)
+    return redirect(url_for('visualizar'))
+
+# Download da lista em Excel
+@app.route('/download_excel')
+def download_excel():
+    cadastros = obter_cadastros()
+    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Turno", "Quantidade de Alunos"])
+    file_path = "cadastros.xlsx"
+    df.to_excel(file_path, index=False)
+    return send_file(file_path, as_attachment=True)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -118,24 +131,6 @@ def index():
 def visualizar():
     cadastros = obter_cadastros()
     return render_template('visualizar.html', cadastros=cadastros)
-
-@app.route('/excluir/<int:registro_id>', methods=['POST'])
-def excluir(registro_id):
-    excluir_registro(registro_id)
-    return redirect(url_for('visualizar'))
-
-@app.route('/excluir_todos', methods=['POST'])
-def excluir_todos():
-    excluir_todos_registros()
-    return redirect(url_for('visualizar'))
-
-@app.route('/download_excel')
-def download_excel():
-    cadastros = obter_cadastros()
-    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Turno", "Quantidade de Alunos"])
-    file_path = "cadastros.xlsx"
-    df.to_excel(file_path, index=False)
-    return send_file(file_path, as_attachment=True)
 
 @app.route('/success')
 def success():
