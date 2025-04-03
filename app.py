@@ -1,8 +1,9 @@
 import os
 import psycopg2
+import pandas as pd
 from psycopg2 import pool
 from flask import Flask, render_template, request, redirect, url_for, send_file
-import pandas as pd
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -41,7 +42,7 @@ def criar_tabela():
         release_db_connection(conn)
 
 # Salvar os dados no banco de dados
-def salvar_cadastro(dados):
+def salvar_dados_db(dados):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -64,17 +65,17 @@ def obter_cadastros():
     finally:
         release_db_connection(conn)
 
-# Excluir um cadastro específico
-def excluir_cadastro(cadastro_id):
+# Excluir um registro específico
+def excluir_cadastro(id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM cadastros WHERE id = %s", (cadastro_id,))
+            cur.execute("DELETE FROM cadastros WHERE id = %s", (id,))
             conn.commit()
     finally:
         release_db_connection(conn)
 
-# Excluir todos os cadastros
+# Excluir todos os registros
 def excluir_todos_cadastros():
     conn = get_db_connection()
     try:
@@ -84,13 +85,23 @@ def excluir_todos_cadastros():
     finally:
         release_db_connection(conn)
 
-# Gerar arquivo Excel com os cadastros
+# Gerar e baixar arquivo Excel
 def gerar_excel():
-    cadastros = obter_cadastros()
-    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Turno", "Quantidade de Alunos"])
-    file_path = "cadastros.xlsx"
-    df.to_excel(file_path, index=False)
-    return file_path
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM cadastros")
+            dados = cur.fetchall()
+            colunas = [desc[0] for desc in cur.description]
+            df = pd.DataFrame(dados, columns=colunas)
+
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Cadastros')
+            output.seek(0)
+            return output
+    finally:
+        release_db_connection(conn)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -117,7 +128,7 @@ def index():
             "Turno": turno,
             "Quantidade de Alunos": quantidade_alunos
         }
-        salvar_cadastro(dados)
+        salvar_dados_db(dados)
         return redirect(url_for('success'))
 
     return render_template('form.html')
@@ -127,9 +138,9 @@ def visualizar():
     cadastros = obter_cadastros()
     return render_template('visualizar.html', cadastros=cadastros)
 
-@app.route('/excluir/<int:cadastro_id>', methods=['POST'])
-def excluir(cadastro_id):
-    excluir_cadastro(cadastro_id)
+@app.route('/excluir/<int:id>', methods=['POST'])
+def excluir(id):
+    excluir_cadastro(id)
     return redirect(url_for('visualizar'))
 
 @app.route('/excluir_todos', methods=['POST'])
@@ -139,8 +150,8 @@ def excluir_todos():
 
 @app.route('/download_excel')
 def download_excel():
-    file_path = gerar_excel()
-    return send_file(file_path, as_attachment=True)
+    output = gerar_excel()
+    return send_file(output, download_name='cadastros.xlsx', as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.route('/success')
 def success():
