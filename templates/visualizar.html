@@ -90,7 +90,9 @@
                 <td>{{ cadastro[6] }}</td>
                 <td>{{ cadastro[7] }}</td>
                 <td>{{ cadastro[8] }}</td>
-                <td><button class="btn btn-delete" onclick="deleteEntry({{ cadastro[0] }})">Excluir</button></td>
+                <td>
+                    <button class="btn btn-delete" onclick="deleteEntry({{ cadastro[0] }})">Excluir</button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -99,20 +101,21 @@
         <button class="btn btn-download" onclick="downloadExcel()">Download Excel</button>
         <button class="btn btn-delete-all" onclick="deleteAll()">Excluir Todos</button>
     </div>
-    
+
     <script>
         function downloadExcel() {
             window.location.href = '/download_excel';
         }
+
         function deleteAll() {
             if (confirm("Tem certeza que deseja excluir todos os cadastros?")) {
                 window.location.href = '/delete_all';
             }
         }
+
         function deleteEntry(id) {
-            if (confirm("Tem certeza que deseja excluir este cadastro?")) {
-                window.location.href = `/delete/${id}`;
-            }
+            // Sem confirmação para 1 registro
+            window.location.href = `/delete/${id}`;
         }
     </script>
 </body>
