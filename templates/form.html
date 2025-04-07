@@ -1,3 +1,4 @@
+<!-- form.html atualizado -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -60,6 +61,13 @@
                     <option value="">Selecione um curso</option>
                 </select>
             </div>
+
+            <!-- Campo adicional para curso personalizado -->
+            <div class="form-group" id="curso_outro_group" style="display: none;">
+                <label for="curso_outro">Informe o nome do curso:</label>
+                <input type="text" id="curso_outro" name="curso_outro" class="form-control">
+            </div>
+
             <div class="form-group" id="quantidade_alunos_group" style="display:none;">
                 <label for="quantidade_alunos">Quantidade de Alunos:</label>
                 <input type="number" id="quantidade_alunos" name="quantidade_alunos" class="form-control">
@@ -80,7 +88,7 @@
     </div>
 
     <script>
-        const dadosCidades = {
+         const dadosCidades = {
             "Rio Branco": {
                 "Hospedagem": ["Serviços de Camareira", "Técnicas de Recepção em Meios de Hospedagem"],
                 "Gastronomia": ["Técnicas para Garçom", "Cozinha Regional", "Preparo de hambúrguer gourmet", "Preparo de Salgados", "Preparo de Saladas"],
@@ -117,6 +125,7 @@
             }
             $('#curso').empty().append('<option value="">Selecione um curso</option>');
             $('#quantidade_alunos_group').hide();
+            $('#curso_outro_group').hide();
         });
 
         $('#segmento').change(function() {
@@ -127,7 +136,9 @@
             cursos.forEach(curso => {
                 $('#curso').append(`<option value="${curso}">${curso}</option>`);
             });
+            $('#curso').append('<option value="Outros">Outros</option>');
             $('#quantidade_alunos_group').hide();
+            $('#curso_outro_group').hide();
         });
 
         $('#curso').change(function() {
@@ -138,6 +149,15 @@
             } else {
                 $('#quantidade_alunos_group').hide();
                 $('#quantidade_alunos').removeAttr('required');
+            }
+
+            // Se for "Outros", exibe campo extra
+            if (valor === 'Outros') {
+                $('#curso_outro_group').show();
+                $('#curso_outro').attr('required', true);
+            } else {
+                $('#curso_outro_group').hide();
+                $('#curso_outro').val('').removeAttr('required');
             }
         });
 
