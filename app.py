@@ -112,7 +112,11 @@ def index():
         cidade = request.form['cidade']
         segmento = request.form['segmento']
         curso = request.form['curso']
-        curso_outro = request.form.get('curso_outro', '') if curso.lower() == 'outro' else ''
+        curso_outro = request.form.get('curso_outro', '').strip()
+
+        # Se o curso for "Outro", usar o valor digitado
+        curso_final = curso_outro if curso.lower() == 'outro' and curso_outro else curso
+
         turno = request.form['turno']
         quantidade_alunos = request.form['quantidade_alunos']
 
@@ -122,8 +126,8 @@ def index():
             "Telefone": telefone,
             "Cidade": cidade,
             "Segmento": segmento,
-            "Curso": curso,
-            "Curso Outro": curso_outro,
+            "Curso": curso_final,          # Aqui está o curso real (inclusive se digitado)
+            "Curso Outro": curso_outro,    # Pode ser mantido vazio se não for "Outro"
             "Turno": turno,
             "Quantidade de Alunos": quantidade_alunos
         }
@@ -142,7 +146,6 @@ def visualizar():
 def success():
     return render_template('success.html')
     
-#rota para corrigir erro da coluna
 
         
 if __name__ == '__main__':
