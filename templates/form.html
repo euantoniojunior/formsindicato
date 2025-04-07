@@ -23,7 +23,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Logo do SENAC -->
         <div class="logo-container">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo SENAC">
         </div>
@@ -109,7 +108,6 @@
             }
         };
 
-        // Preencher segmentos com base na cidade
         $('#cidade').change(function() {
             const cidade = $(this).val();
             const segmentos = dadosCidades[cidade] || {};
@@ -121,7 +119,6 @@
             $('#quantidade_alunos_group').hide();
         });
 
-        // Preencher cursos com base no segmento
         $('#segmento').change(function() {
             const cidade = $('#cidade').val();
             const segmento = $(this).val();
@@ -133,7 +130,6 @@
             $('#quantidade_alunos_group').hide();
         });
 
-        // Exibir campo de quantidade de alunos
         $('#curso').change(function() {
             const valor = $(this).val();
             if (valor !== '') {
@@ -145,14 +141,12 @@
             }
         });
 
-        // Armazenar dados no localStorage ao enviar
         $('#formInscricao').on('submit', function() {
             localStorage.setItem('nome', $('#nome').val());
             localStorage.setItem('nome_empresa', $('#nome_empresa').val());
             localStorage.setItem('telefone', $('#telefone').val());
         });
 
-        // Preencher campos com dados da URL ou localStorage
         $(document).ready(function() {
             const query = new URLSearchParams(window.location.search);
             const nome = query.get('nome') || localStorage.getItem('nome');
