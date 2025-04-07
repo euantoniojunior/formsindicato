@@ -141,6 +141,31 @@ def visualizar():
 @app.route('/success')
 def success():
     return render_template('success.html')
-
+    
+#rota para corrigir erro da coluna
+@app.route('/fix_column')
+def fix_column():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='cadastros' AND column_name='curso_outro'
+                    ) THEN
+                        ALTER TABLE cadastros ADD COLUMN curso_outro TEXT;
+                    END IF;
+                END
+                $$;
+            """)
+            conn.commit()
+        return "✅ Coluna 'curso_outro' verificada/adicionada com sucesso."
+    except Exception as e:
+        return f"❌ Erro ao verificar/adicionar coluna: {str(e)}"
+    finally:
+        release_db_connection(conn)
+        
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
