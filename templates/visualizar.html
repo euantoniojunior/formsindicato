@@ -87,9 +87,9 @@
                 <td>{{ cadastro[3] }}</td>
                 <td>{{ cadastro[4] }}</td>
                 <td>{{ cadastro[5] }}</td>
-                <td>{{ cadastro[6] }}</td>
-                <td>{{ cadastro[7] }}</td>
+                <td>{{ cadastro[7] if cadastro[6].lower() == 'outro' else cadastro[6] }}</td>
                 <td>{{ cadastro[8] }}</td>
+                <td>{{ cadastro[9] }}</td>
                 <td>
                     <button class="btn btn-delete" onclick="deleteEntry({{ cadastro[0] }})">Excluir</button>
                 </td>
