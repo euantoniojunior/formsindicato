@@ -73,13 +73,14 @@
                 <th>Cidade</th>
                 <th>Segmento</th>
                 <th>Curso</th>
-                <th>Alunos</th>
+                <th>Curso Outro</th>
                 <th>Turno</th>
+                <th>Alunos</th>
                 <th>Ações</th>
             </tr>
         </thead>
         <tbody>
-            {% for cadastro in cadastros[:14] %}
+            {% for cadastro in cadastros %}
             <tr id="row-{{ cadastro[0] }}">
                 <td>{{ cadastro[0] }}</td>
                 <td>{{ cadastro[1] }}</td>
@@ -87,7 +88,8 @@
                 <td>{{ cadastro[3] }}</td>
                 <td>{{ cadastro[4] }}</td>
                 <td>{{ cadastro[5] }}</td>
-                <td>{{ cadastro[7] if cadastro[6].lower() == 'outro' else cadastro[6] }}</td>
+                <td>{{ cadastro[6] }}</td>
+                <td>{{ cadastro[7] }}</td>
                 <td>{{ cadastro[8] }}</td>
                 <td>{{ cadastro[9] }}</td>
                 <td>
