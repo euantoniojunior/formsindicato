@@ -1,174 +1,152 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulário de Inscrição</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <style>
-        body { background-color: #f1f1f1; font-family: 'Arial', sans-serif; }
-        .container { max-width: 800px; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 50px; }
-        h2 { text-align: center; color: #f28d35; margin-bottom: 30px; }
-        .btn-senac { background-color: #f28d35; color: white; border: none; }
-        .btn-senac:hover { background-color: #d9782c; }
-        label { font-weight: bold; }
-        select, input { margin-bottom: 20px; }
-        select, input[type="text"], input[type="number"] { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        .form-group { margin-bottom: 25px; }
-        .form-control { border-radius: 5px; }
-        .logo-container { text-align: center; margin-bottom: 20px; }
-        .logo-container img { max-width: 200px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Logo do SENAC -->
-        <div class="logo-container">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo SENAC">
-        </div>
-        <h2>Formulário de Inscrição</h2>
-        <form method="POST" id="formInscricao">
-            <div class="form-group">
-                <label for="nome">Nome:</label>
-                <input type="text" id="nome" name="nome" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="nome_empresa">Nome da Empresa:</label>
-                <input type="text" id="nome_empresa" name="nome_empresa" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="telefone">Telefone para Contato:</label>
-                <input type="text" id="telefone" name="telefone" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="cidade">Cidade:</label>
-                <select id="cidade" name="cidade" class="form-control" required>
-                    <option value="">Selecione uma cidade</option>
-                    <option value="Rio Branco">Rio Branco</option>
-                    <option value="Cruzeiro do Sul">Cruzeiro do Sul</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="segmento">Segmento:</label>
-                <select id="segmento" name="segmento" class="form-control" required>
-                    <option value="">Selecione um segmento</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="curso">Cursos Disponíveis:</label>
-                <select id="curso" name="curso" class="form-control" required>
-                    <option value="">Selecione um curso</option>
-                </select>
-            </div>
-            <div class="form-group" id="quantidade_alunos_group" style="display:none;">
-                <label for="quantidade_alunos">Quantidade de Alunos:</label>
-                <input type="number" id="quantidade_alunos" name="quantidade_alunos" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="turno">Turno:</label>
-                <select id="turno" name="turno" class="form-control" required>
-                    <option value="">Selecione o turno</option>
-                    <option value="Manhã">Manhã</option>
-                    <option value="Tarde">Tarde</option>
-                    <option value="Noite">Noite</option>
-                </select>
-            </div>
-            <div class="form-group text-center">
-                <button type="submit" class="btn btn-senac btn-lg w-100">Enviar</button>
-            </div>
-        </form>
-    </div>
-  
-    <script>
-        // Armazenar dados no localStorage ao enviar o formulário
-        document.getElementById('formInscricao').addEventListener('submit', function() {
-            localStorage.setItem('nome', document.getElementById('nome').value);
-            localStorage.setItem('nome_empresa', document.getElementById('nome_empresa').value);
-            localStorage.setItem('telefone', document.getElementById('telefone').value);
-        });
-        // Função para obter parâmetros da URL
-        function getQueryParams() {
-            var params = {};
-            var search = window.location.search.substring(1);
-            if (search) {
-                search.split('&').forEach(function(part) {
-                    var item = part.split('=');
-                    params[decodeURIComponent(item[0])] = decodeURIComponent(item[1]);
-                });
-            }
-            return params;
+import os
+import psycopg2
+from psycopg2 import pool
+from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify
+import pandas as pd
+
+app = Flask(__name__)
+
+# Configurar um pool de conexões
+DATABASE_URL = os.getenv("DATABASE_URL")
+connection_pool = pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='disable')
+
+def get_db_connection():
+    return connection_pool.getconn()
+
+def release_db_connection(conn):
+    connection_pool.putconn(conn)
+
+# Criar tabela com curso_outro
+def criar_tabela():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS cadastros (
+                    id SERIAL PRIMARY KEY,
+                    nome TEXT,
+                    nome_empresa TEXT,
+                    telefone TEXT,
+                    cidade TEXT,
+                    segmento TEXT,
+                    curso TEXT,
+                    curso_outro TEXT,
+                    turno TEXT,
+                    quantidade_alunos INTEGER
+                )
+            ''')
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+
+# Salvar os dados no banco de dados
+def salvar_dados_db(dados):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute('''
+                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                dados["Nome"], dados["Nome da Empresa"], dados["Telefone"], dados["Cidade"],
+                dados["Segmento"], dados["Curso"], dados["Curso Outro"], dados["Turno"], dados["Quantidade de Alunos"]
+            ))
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+
+# Obter todos os cadastros
+def obter_cadastros():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute('''
+                SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos 
+                FROM cadastros
+            ''')
+            return cur.fetchall()
+    finally:
+        release_db_connection(conn)
+
+# Excluir um único cadastro
+@app.route('/delete/<int:id>', methods=['POST'])
+def delete_cadastro(id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM cadastros WHERE id = %s", (id,))
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+    return jsonify({"success": True, "message": "Cadastro excluído com sucesso."})
+
+# Excluir todos os cadastros
+@app.route('/delete_all', methods=['POST'])
+def delete_all_cadastros():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM cadastros")
+            conn.commit()
+    finally:
+        release_db_connection(conn)
+    return jsonify({"success": True, "message": "Todos os cadastros foram excluídos."})
+
+# Download da lista em Excel
+@app.route('/download_excel')
+def download_excel():
+    cadastros = obter_cadastros()
+    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos"])
+    file_path = "cadastros.xlsx"
+    df.to_excel(file_path, index=False)
+    return send_file(file_path, as_attachment=True)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    criar_tabela()
+
+    if request.method == 'POST':
+        nome = request.form['nome']
+        nome_empresa = request.form['nome_empresa']
+        telefone = request.form['telefone']
+        cidade = request.form['cidade']
+        segmento = request.form['segmento']
+        curso = request.form['curso']
+        curso_outro = request.form.get('curso_outro', '').strip()
+
+        # Se o curso for "Outro", usar o valor digitado
+        curso_final = curso_outro if curso.lower() == 'outro' and curso_outro else curso
+
+        turno = request.form['turno']
+        quantidade_alunos = request.form['quantidade_alunos']
+
+        dados = {
+            "Nome": nome,
+            "Nome da Empresa": nome_empresa,
+            "Telefone": telefone,
+            "Cidade": cidade,
+            "Segmento": segmento,
+            "Curso": curso_final,          # Aqui está o curso real (inclusive se digitado)
+            "Curso Outro": curso_outro,    # Pode ser mantido vazio se não for "Outro"
+            "Turno": turno,
+            "Quantidade de Alunos": quantidade_alunos
         }
-        // Preencher formulário com dados da URL ou localStorage
-        window.onload = function() {
-            var query = getQueryParams();
-            if (query.nome) {
-                document.getElementById('nome').value = query.nome;
-            } else if (localStorage.getItem('nome')) {
-                document.getElementById('nome').value = localStorage.getItem('nome');
-            }
-            if (query.nome_empresa) {
-                document.getElementById('nome_empresa').value = query.nome_empresa;
-            } else if (localStorage.getItem('nome_empresa')) {
-                document.getElementById('nome_empresa').value = localStorage.getItem('nome_empresa');
-            }
-            if (query.telefone) {
-                document.getElementById('telefone').value = query.telefone;
-            } else if (localStorage.getItem('telefone')) {
-                document.getElementById('telefone').value = localStorage.getItem('telefone');
-            }
-        };
-        const dadosCidades = {
-            "Rio Branco": {
-                "Hospedagem": ["Serviços de Camareira", "Técnicas de Recepção em Meios de Hospedagem"],
-                "Gastronomia": ["Técnicas para Garçom", "Cozinha Regional", "Preparo de hambúrguer gourmet", "Preparo de Salgados", "Preparo de Saladas"],
-                "Turismo": ["Qualidade no Atendimento Turístico"],
-                "Saúde": ["Atendente de Farmácia", "Auxiliar em Saúde Bucal", "Coleta de sangue em hemoterapia: doador e paciente", "Cuidador de Idoso", "Cuidador Infantil", "Enfermagem em Hemodiálise e Diálise Peritoneal", "Recepcionista em Serviços de Saúde"],
-                "Beleza": ["Cabeleireiro", "Corte Masculino e Feminino", "Depilador", "Manicure e Pedicure", "Técnicas de Maquiagem", "Design de Sobrancelhas", "Modelagem e Henna para Sobrancelhas", "Cortes Masculinos e Design de Barba", "Penteados"],
-                "Moda": ["Costureiro", "Modelista"],
-                "Produção de alimentos": ["Preparo de Bolos e Tortas", "Preparo de Pizzas", "Técnicas de Confeitaria"],
-                "Tecnologia da Informação": ["Assistente de Tecnologias da Informação", "Lei Geral de Proteção de Dados Pessoais (Lgpd)", "Inteligência Artificial na Educação: Melhores Práticas", "Introdução à IA: Inteligência Artificial na Prática", "Segurança de Redes", "Operar Sistemas Operacionais Cliente, Aplicativos de Escritório e Periféricos"],
-                "Gestão": ["Licitações e Contratos", "Assistente de Marketing e Vendas", "Assistente Financeiro", "Custos e Formação de Preços", "Recepcionista"],
-                "Comércio": ["Ferramentas de Marketing Digital", "Repositor de Mercadorias"],
-                "Design": ["Criação de Identidade Visual e Manual de Marca", "Bim - Revit Essencial", "Web Designer"]
-            },
-            "Cruzeiro do Sul": {
-                "Beleza": ["Cabeleireiro", "Manicure e Pedicure", "Barbeiro", "Corte Feminino e Escova", "Técnicas de Unhas Artísticas", "Penteados e Maquiagem para Festas"],
-                "Comércio": ["Vendedor", "Operador de Caixa", "Repositor de Mercadorias", "Ferramentas de Marketing Digital", "Formação de Preço"],
-                "Gastronomia": ["Técnicas para Garçom", "Preparo de Salgados", "Preparo de hambúrguer gourmet", "Preparo de Saladas"],
-                "Gestão": ["Assistente Administrativo", "Assistente de Pessoal", "Assistente de Recursos Humanos", "Excelência no Atendimento ao Cliente", "Recepcionista", "Rotinas de Departamento Pessoal"],
-                "Hospedagem": ["Serviços de Camareira", "Técnicas de Recepção em Meios de Hospedagem"],
-                "Moda": ["Costureiro"],
-                "Produção de alimentos": ["Preparo de Bolos e Tortas", "Técnicas de Confeitaria", "Preparo de Pizzas"],
-                "Saúde": ["Enfermagem em Hemodiálise e Diálise Peritoneal", "Atendente de Farmácia", "Cuidador de Idoso", "Agente Comunitário de Saúde", "Coleta de sangue em hemoterapia: doador e paciente", "Assistência de enfermagem materno-infantil", "Qualidade no atendimento em serviços de saúde", "Auxiliar em Saúde Bucal", "Massagista"],
-                "Tecnologia da Informação": ["Operar Sistemas Operacionais Cliente, Aplicativos de Escritório e Periféricos", "Assistente de Tecnologias da Informação", "Instalador e Reparador de Redes de Computadores", "Inteligência Artificial na Educação: Melhores Práticas", "Introdução à IA: Inteligência Artificial na Prática", "Segurança de Redes"],
-                "Transporte e Armazenagem": ["Frentista"]
-            }
-        };
-        $('#cidade').change(function() {
-            const cidadeSelecionada = $(this).val();
-            const segmentos = dadosCidades[cidadeSelecionada];
-            $('#segmento').empty().append('<option value="">Selecione um segmento</option>');
-            for (const segmento in segmentos) {
-                $('#segmento').append('<option value="' + segmento + '">' + segmento + '</option>');
-            }
-        });
-        $('#segmento').change(function() {
-            const cidadeSelecionada = $('#cidade').val();
-            const segmentoSelecionado = $(this).val();
-            const cursos = dadosCidades[cidadeSelecionada][segmentoSelecionado];
-            $('#curso').empty().append('<option value="">Selecione um curso</option>');
-            cursos.forEach(function(curso) {
-                $('#curso').append('<option value="' + curso + '">' + curso + '</option>');
-            });
-        });
-        $('#curso').change(function() {
-            if ($(this).val() !== '') {
-                $('#quantidade_alunos_group').show();
-            } else {
-                $('#quantidade_alunos_group').hide();
-            }
-        });
-    </script>
-</body>
-</html>
+
+        salvar_dados_db(dados)
+        return redirect(url_for('success'))
+
+    return render_template('form.html')
+
+@app.route('/visualizar')
+def visualizar():
+    cadastros = obter_cadastros()
+    return render_template('visualizar.html', cadastros=cadastros)
+
+@app.route('/success')
+def success():
+    return render_template('success.html')
+    
+
+        
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
