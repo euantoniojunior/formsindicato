@@ -192,13 +192,6 @@
 
         $('#curso').change(function() {
             const valor = $(this).val();
-            if (valor !== '') {
-                $('#quantidade_alunos_group').show();
-                $('#quantidade_alunos').attr('required', true);
-            } else {
-                $('#quantidade_alunos_group').hide();
-                $('#quantidade_alunos').removeAttr('required');
-            }
             if (valor === 'Outros') {
                 $('#curso_outro_group').show();
             } else {
@@ -208,7 +201,7 @@
 
         $('#formInscricao').submit(function(event) {
             event.preventDefault();
-            alert('Formulário enviado com sucesso!');
+            window.location.href = "sucess.html";
         });
     </script>
 </body>
