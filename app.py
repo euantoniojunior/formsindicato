@@ -16,7 +16,7 @@ def get_db_connection():
 def release_db_connection(conn):
     connection_pool.putconn(conn)
 
-# Criar tabela com curso_outro
+# Criar tabela com curso_outro e sindicato
 def criar_tabela():
     conn = get_db_connection()
     try:
@@ -32,7 +32,8 @@ def criar_tabela():
                     curso TEXT,
                     curso_outro TEXT,
                     turno TEXT,
-                    quantidade_alunos INTEGER
+                    quantidade_alunos INTEGER,
+                    sindicato TEXT -- Novo campo
                 )
             ''')
             conn.commit()
@@ -45,11 +46,11 @@ def salvar_dados_db(dados):
     try:
         with conn.cursor() as cur:
             cur.execute('''
-                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos, sindicato)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 dados["Nome"], dados["Nome da Empresa"], dados["Telefone"], dados["Cidade"],
-                dados["Segmento"], dados["Curso"], dados["Curso Outro"], dados["Turno"], dados["Quantidade de Alunos"]
+                dados["Segmento"], dados["Curso"], dados["Curso Outro"], dados["Turno"], dados["Quantidade de Alunos"], dados["Sindicato"]
             ))
             conn.commit()
     finally:
@@ -61,7 +62,7 @@ def obter_cadastros():
     try:
         with conn.cursor() as cur:
             cur.execute('''
-                SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos 
+                SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos, sindicato
                 FROM cadastros
             ''')
             return cur.fetchall()
@@ -96,7 +97,7 @@ def delete_all_cadastros():
 @app.route('/download_excel')
 def download_excel():
     cadastros = obter_cadastros()
-    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos"])
+    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos", "Sindicato"])
     file_path = "cadastros.xlsx"
     df.to_excel(file_path, index=False)
     return send_file(file_path, as_attachment=True)
@@ -113,6 +114,7 @@ def index():
         segmento = request.form['segmento']
         curso = request.form['curso']
         curso_outro = request.form.get('curso_outro', '').strip()
+        sindicato = request.form.get('sindicato', '').strip()  # Novo campo
 
         # Se o curso for "Outro", usar o valor digitado
         curso_final = curso_outro if curso.lower() == 'outro' and curso_outro else curso
@@ -129,7 +131,8 @@ def index():
             "Curso": curso_final,          # Aqui está o curso real (inclusive se digitado)
             "Curso Outro": curso_outro,    # Pode ser mantido vazio se não for "Outro"
             "Turno": turno,
-            "Quantidade de Alunos": quantidade_alunos
+            "Quantidade de Alunos": quantidade_alunos,
+            "Sindicato": sindicato        # Novo campo
         }
 
         salvar_dados_db(dados)
@@ -145,8 +148,6 @@ def visualizar():
 @app.route('/success')
 def success():
     return render_template('success.html')
-    
 
-        
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
