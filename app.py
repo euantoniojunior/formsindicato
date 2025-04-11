@@ -10,13 +10,15 @@ app = Flask(__name__)
 DATABASE_URL = os.getenv("DATABASE_URL")
 connection_pool = pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='disable')
 
+# Obter uma conexão do pool
 def get_db_connection():
     return connection_pool.getconn()
 
+# Liberar a conexão de volta para o pool
 def release_db_connection(conn):
     connection_pool.putconn(conn)
 
-# Criar tabela com curso_outro e sindicato
+# Criar tabela se não existir
 def criar_tabela():
     conn = get_db_connection()
     try:
@@ -30,10 +32,8 @@ def criar_tabela():
                     cidade TEXT,
                     segmento TEXT,
                     curso TEXT,
-                    curso_outro TEXT,
                     turno TEXT,
-                    quantidade_alunos INTEGER,
-                    sindicato TEXT -- Novo campo
+                    quantidade_alunos INTEGER
                 )
             ''')
             conn.commit()
@@ -46,12 +46,10 @@ def salvar_dados_db(dados):
     try:
         with conn.cursor() as cur:
             cur.execute('''
-                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos, sindicato)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                dados["Nome"], dados["Nome da Empresa"], dados["Telefone"], dados["Cidade"],
-                dados["Segmento"], dados["Curso"], dados["Curso Outro"], dados["Turno"], dados["Quantidade de Alunos"], dados["Sindicato"]
-            ))
+                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, turno, quantidade_alunos)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (dados["Nome"], dados["Nome da Empresa"], dados["Telefone"], dados["Cidade"], 
+                  dados["Segmento"], dados["Curso"], dados["Turno"], dados["Quantidade de Alunos"]))
             conn.commit()
     finally:
         release_db_connection(conn)
@@ -61,10 +59,7 @@ def obter_cadastros():
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute('''
-                SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos, sindicato
-                FROM cadastros
-            ''')
+            cur.execute("SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, turno, quantidade_alunos FROM cadastros")
             return cur.fetchall()
     finally:
         release_db_connection(conn)
@@ -97,7 +92,7 @@ def delete_all_cadastros():
 @app.route('/download_excel')
 def download_excel():
     cadastros = obter_cadastros()
-    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos", "Sindicato"])
+    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Turno", "Quantidade de Alunos"])
     file_path = "cadastros.xlsx"
     df.to_excel(file_path, index=False)
     return send_file(file_path, as_attachment=True)
@@ -105,7 +100,7 @@ def download_excel():
 @app.route('/', methods=['GET', 'POST'])
 def index():
     criar_tabela()
-
+    
     if request.method == 'POST':
         nome = request.form['nome']
         nome_empresa = request.form['nome_empresa']
@@ -113,28 +108,20 @@ def index():
         cidade = request.form['cidade']
         segmento = request.form['segmento']
         curso = request.form['curso']
-        curso_outro = request.form.get('curso_outro', '').strip()
-        sindicato = request.form.get('sindicato', '').strip()  # Novo campo
-
-        # Se o curso for "Outro", usar o valor digitado
-        curso_final = curso_outro if curso.lower() == 'outro' and curso_outro else curso
-
         turno = request.form['turno']
         quantidade_alunos = request.form['quantidade_alunos']
 
+        # Salvar os dados no banco de dados
         dados = {
             "Nome": nome,
             "Nome da Empresa": nome_empresa,
             "Telefone": telefone,
             "Cidade": cidade,
             "Segmento": segmento,
-            "Curso": curso_final,          # Aqui está o curso real (inclusive se digitado)
-            "Curso Outro": curso_outro,    # Pode ser mantido vazio se não for "Outro"
+            "Curso": curso,
             "Turno": turno,
-            "Quantidade de Alunos": quantidade_alunos,
-            "Sindicato": sindicato        # Novo campo
+            "Quantidade de Alunos": quantidade_alunos
         }
-
         salvar_dados_db(dados)
         return redirect(url_for('success'))
 
