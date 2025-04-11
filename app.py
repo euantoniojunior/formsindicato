@@ -16,11 +16,12 @@ def get_db_connection():
 def release_db_connection(conn):
     connection_pool.putconn(conn)
 
-# Criar tabela com curso_outro
+# Função para criar tabela e adicionar coluna "sindicato" se não existir
 def criar_tabela():
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
+            # Criar tabela se não existir
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS cadastros (
                     id SERIAL PRIMARY KEY,
@@ -28,6 +29,7 @@ def criar_tabela():
                     nome_empresa TEXT,
                     telefone TEXT,
                     cidade TEXT,
+                    sindicato TEXT,  -- Nova coluna adicionada
                     segmento TEXT,
                     curso TEXT,
                     curso_outro TEXT,
@@ -36,6 +38,16 @@ def criar_tabela():
                 )
             ''')
             conn.commit()
+
+            # Verificar se a coluna "sindicato" existe; se não, adicioná-la
+            cur.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='cadastros' AND column_name='sindicato'
+            """)
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE cadastros ADD COLUMN sindicato TEXT")
+                conn.commit()
     finally:
         release_db_connection(conn)
 
@@ -45,10 +57,11 @@ def salvar_dados_db(dados):
     try:
         with conn.cursor() as cur:
             cur.execute('''
-                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO cadastros (nome, nome_empresa, telefone, cidade, sindicato, segmento, curso, curso_outro, turno, quantidade_alunos)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 dados["Nome"], dados["Nome da Empresa"], dados["Telefone"], dados["Cidade"],
+                dados["Sindicato"],  # Novo campo adicionado
                 dados["Segmento"], dados["Curso"], dados["Curso Outro"], dados["Turno"], dados["Quantidade de Alunos"]
             ))
             conn.commit()
@@ -61,7 +74,7 @@ def obter_cadastros():
     try:
         with conn.cursor() as cur:
             cur.execute('''
-                SELECT id, nome, nome_empresa, telefone, cidade, segmento, curso, curso_outro, turno, quantidade_alunos 
+                SELECT id, nome, nome_empresa, telefone, cidade, sindicato, segmento, curso, curso_outro, turno, quantidade_alunos 
                 FROM cadastros
             ''')
             return cur.fetchall()
@@ -96,7 +109,10 @@ def delete_all_cadastros():
 @app.route('/download_excel')
 def download_excel():
     cadastros = obter_cadastros()
-    df = pd.DataFrame(cadastros, columns=["ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos"])
+    df = pd.DataFrame(cadastros, columns=[
+        "ID", "Nome", "Nome da Empresa", "Telefone", "Cidade", "Sindicato",  # Incluído "Sindicato"
+        "Segmento", "Curso", "Curso Outro", "Turno", "Quantidade de Alunos"
+    ])
     file_path = "cadastros.xlsx"
     df.to_excel(file_path, index=False)
     return send_file(file_path, as_attachment=True)
@@ -110,6 +126,7 @@ def index():
         nome_empresa = request.form['nome_empresa']
         telefone = request.form['telefone']
         cidade = request.form['cidade']
+        sindicato = request.form['sindicato']  # Novo campo adicionado
         segmento = request.form['segmento']
         curso = request.form['curso']
         curso_outro = request.form.get('curso_outro', '').strip()
@@ -125,9 +142,10 @@ def index():
             "Nome da Empresa": nome_empresa,
             "Telefone": telefone,
             "Cidade": cidade,
+            "Sindicato": sindicato,  # Novo campo adicionado
             "Segmento": segmento,
-            "Curso": curso_final,          # Aqui está o curso real (inclusive se digitado)
-            "Curso Outro": curso_outro,    # Pode ser mantido vazio se não for "Outro"
+            "Curso": curso_final,
+            "Curso Outro": curso_outro,
             "Turno": turno,
             "Quantidade de Alunos": quantidade_alunos
         }
@@ -145,8 +163,6 @@ def visualizar():
 @app.route('/success')
 def success():
     return render_template('success.html')
-    
 
-        
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
