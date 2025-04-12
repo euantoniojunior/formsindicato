@@ -49,7 +49,7 @@
                     <option value="Cruzeiro do Sul">Cruzeiro do Sul</option>
                 </select>
             </div>
-            <!-- Novo campo "Sindicato" -->
+            <!-- Campo "Sindicato" sem a opção "Outros" -->
             <div class="form-group">
                 <label for="sindicato">Escolha seu SINDICATO:</label>
                 <select id="sindicato" name="sindicato" class="form-control" required>
@@ -143,6 +143,7 @@
             cursos.forEach(curso => {
                 $('#curso').append(`<option value="${curso}">${curso}</option>`);
             });
+            $('#curso').append('<option value="Outros">Outros</option>'); <!-- Opção "Outros" mantida -->
             $('#quantidade_alunos_group').hide();
             $('#curso_outro_group').hide();
         });
